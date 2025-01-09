@@ -16,11 +16,11 @@
             "dest": "app/main.py"
         },
         {
-            "src": "/api/status",
+            "src": "/api/status/(.*)",
             "dest": "app/main.py"
         },
         {
-            "src": "/api/results",
+            "src": "/api/results/(.*)",
             "dest": "app/main.py"
         },
         {
