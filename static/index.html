@@ -83,14 +83,22 @@
                 // Poll for results
                 const checkStatus = async () => {
                     const statusResponse = await fetch(`/api/status/${taskId}`);
+                    
+                    if (!statusResponse.ok) {
+                        const errorText = await statusResponse.text(); // Get the error response as text
+                        console.error('Error fetching status:', errorText);
+                        resultsDiv.innerHTML = 'Error fetching status: ' + errorText;
+                        return; // Exit the function
+                    }
+                    
                     const statusData = await statusResponse.json();
                     
-                    if (statusData.status === 'completed') {
+                    if (statusData.state === 'SUCCESS') {
                         const resultsResponse = await fetch(`/api/results/${taskId}`);
                         const results = await resultsResponse.json();
                         resultsDiv.innerHTML = 'Analysis complete:\n\n' + 
                             JSON.stringify(results, null, 2);
-                    } else if (statusData.status === 'failed') {
+                    } else if (statusData.state === 'FAILURE') {
                         resultsDiv.innerHTML = 'Analysis failed: ' + statusData.error;
                     } else {
                         resultsDiv.innerHTML += '.';
