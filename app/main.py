@@ -32,6 +32,7 @@ async def read_root():
     index_path = os.path.join(static_dir, "index.html")
     logger.info(f"Looking for index.html at: {index_path}")
     if os.path.exists(index_path):
+        logger.info("Index file found, serving it.")
         return FileResponse(index_path, media_type='text/html')
     else:
         logger.error("Index file not found")
@@ -44,17 +45,21 @@ class PRRequest(BaseModel):
 
 @app.post("/api/analyze")
 async def analyze_pr(request: PRRequest):
+    logger.info(f"Received analyze request: {request.json()}")
     # Submit task to Celery
     task = process_pr.delay(
         repo_url=request.repo_url,
         pr_number=request.pr_number,
         github_token=request.github_token
     )
+    logger.info(f"Task submitted with ID: {task.id}")
     return {"task_id": task.id}
 
 @app.get("/api/status/{task_id}")
 async def get_status(task_id: str):
+    logger.info(f"Checking status for task ID: {task_id}")
     task = process_pr.AsyncResult(task_id)
+    
     if task.state == 'PENDING':
         response = {
             'state': task.state,
@@ -70,14 +75,19 @@ async def get_status(task_id: str):
             'state': task.state,
             'error': str(task.info),  # this will be the error raised
         }
+    
+    logger.info(f"Task status response: {response}")
     return response
 
 @app.get("/api/results/{task_id}")
 async def get_results(task_id: str):
+    logger.info(f"Fetching results for task ID: {task_id}")
     task = process_pr.AsyncResult(task_id)
     if task.state == 'SUCCESS':
+        logger.info(f"Results found for task ID: {task_id}")
         return task.result
     else:
+        logger.warning(f"Results not ready for task ID: {task_id}")
         raise HTTPException(status_code=404, detail="Results not ready")
 
 @app.get("/test_celery")
@@ -101,12 +111,14 @@ async def debug_routes():
             "name": route.name,
             "methods": [method for method in route.methods] if route.methods else []
         })
+    logger.info(f"Registered routes: {routes}")
     return {"routes": routes}
 
 @app.get("/debug/static")
 async def debug_static():
     """Debug static files setup"""
     try:
+        logger.info("Debugging static files setup.")
         return {
             "static_dir": static_dir,
             "static_dir_exists": os.path.exists(static_dir),
@@ -116,4 +128,5 @@ async def debug_static():
             "files_in_static": os.listdir(static_dir) if os.path.exists(static_dir) else []
         }
     except Exception as e:
+        logger.error(f"Error during static files debug: {str(e)}")
         return {"error": str(e)} 
