@@ -19,10 +19,5 @@
             "src": "/(.*)",
             "dest": "/static/$1"
         }
-    ],
-    "env": {
-        "OPENAI_API_KEY": "@openai_api_key",
-        "GITHUB_TOKEN": "@github_token",
-        "REDIS_URL": "@redis_url"
-    }
+    ]
 } 
