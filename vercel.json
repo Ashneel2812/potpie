@@ -16,6 +16,14 @@
             "dest": "app/main.py"
         },
         {
+            "src": "/api/status",
+            "dest": "app/main.py"
+        },
+        {
+            "src": "/api/results",
+            "dest": "app/main.py"
+        },
+        {
             "src": "/(.*)",
             "dest": "/static/$1"
         }
