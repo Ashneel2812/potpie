@@ -1,0 +1,28 @@
+{
+    "version": 2,
+    "builds": [
+        {
+            "src": "api/*.py",
+            "use": "@vercel/python"
+        },
+        {
+            "src": "static/**",
+            "use": "@vercel/static"
+        }
+    ],
+    "routes": [
+        {
+            "src": "/api/(.*)",
+            "dest": "/api/$1.py"
+        },
+        {
+            "src": "/(.*)",
+            "dest": "/static/$1"
+        }
+    ],
+    "env": {
+        "OPENAI_API_KEY": "@openai_api_key",
+        "GITHUB_TOKEN": "@github_token",
+        "REDIS_URL": "@redis_url"
+    }
+} 

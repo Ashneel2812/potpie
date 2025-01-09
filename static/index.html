@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PR Analysis Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        #results {
+            margin-top: 20px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>PR Analysis Tool</h1>
+    
+    <div class="form-group">
+        <label for="repo_url">Repository URL:</label>
+        <input type="text" id="repo_url" placeholder="https://github.com/user/repo">
+    </div>
+    
+    <div class="form-group">
+        <label for="pr_number">PR Number:</label>
+        <input type="number" id="pr_number">
+    </div>
+    
+    <div class="form-group">
+        <label for="github_token">GitHub Token (Optional):</label>
+        <input type="password" id="github_token">
+    </div>
+    
+    <button onclick="analyzePR()">Analyze PR</button>
+    
+    <div id="results"></div>
+
+    <script>
+        async function analyzePR() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = 'Submitting analysis request...';
+            
+            try {
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        repo_url: document.getElementById('repo_url').value,
+                        pr_number: parseInt(document.getElementById('pr_number').value),
+                        github_token: document.getElementById('github_token').value || null
+                    })
+                });
+                
+                const data = await response.json();
+                const taskId = data.task_id;
+                
+                resultsDiv.innerHTML = `Task submitted. Task ID: ${taskId}. Checking status...`;
+                
+                // Poll for results
+                const checkStatus = async () => {
+                    const statusResponse = await fetch(`/api/status/${taskId}`);
+                    const statusData = await statusResponse.json();
+                    
+                    if (statusData.status === 'completed') {
+                        const resultsResponse = await fetch(`/api/results/${taskId}`);
+                        const results = await resultsResponse.json();
+                        resultsDiv.innerHTML = 'Analysis complete:\n\n' + 
+                            JSON.stringify(results, null, 2);
+                    } else if (statusData.status === 'failed') {
+                        resultsDiv.innerHTML = 'Analysis failed: ' + statusData.error;
+                    } else {
+                        resultsDiv.innerHTML += '.';
+                        setTimeout(checkStatus, 2000); // Check again after 2 seconds
+                    }
+                };
+                
+                checkStatus(); // Start polling for results
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

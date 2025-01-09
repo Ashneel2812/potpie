@@ -1,0 +1,4 @@
+app/**
+requirements.txt
+runtime.txt
+celery.conf 
