@@ -54,54 +54,31 @@ async def analyze_pr(request: PRRequest):
 
 @app.get("/api/status/{task_id}")
 async def get_status(task_id: str):
-    logger.info(f"Checking status for task {task_id}")
     task = process_pr.AsyncResult(task_id)
-    
-    try:
-        status_mapping = {
-            'PENDING': 'pending',
-            'STARTED': 'started',
-            'SUCCESS': 'completed',
-            'FAILURE': 'failed',
-            'RETRY': 'retry',
+    if task.state == 'PENDING':
+        response = {
+            'state': task.state,
+            'status': 'Pending...'
         }
-        
-        result = {
-            "status": status_mapping.get(task.state, 'unknown'),
-            "state": task.state,
+    elif task.state != 'FAILURE':
+        response = {
+            'state': task.state,
+            'result': task.result
         }
-        
-        if task.failed():
-            error = task.result
-            result.update({
-                "error": str(error),
-                "exc_type": type(error).__name__
-            })
-        elif task.successful():
-            result.update(task.result)
-        
-        return result
-    except Exception as e:
-        logger.error(f"Error getting task status: {str(e)}")
-        return {
-            "status": "error",
-            "state": "ERROR",
-            "error": str(e),
-            "exc_type": type(e).__name__
+    else:
+        response = {
+            'state': task.state,
+            'error': str(task.info),  # this will be the error raised
         }
+    return response
 
 @app.get("/api/results/{task_id}")
 async def get_results(task_id: str):
     task = process_pr.AsyncResult(task_id)
-    try:
-        if task.ready():
-            result = task.get(timeout=1)
-            if isinstance(result, dict) and "error" in result:
-                raise HTTPException(status_code=400, detail=result["error"])
-            return result
+    if task.state == 'SUCCESS':
+        return task.result
+    else:
         raise HTTPException(status_code=404, detail="Results not ready")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/test_celery")
 async def test_celery():
